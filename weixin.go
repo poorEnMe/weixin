@@ -89,7 +89,7 @@ const (
 	weixinMaterialURL        = "https://api.weixin.qq.com/cgi-bin/material"
 	weixinShortURL           = "https://api.weixin.qq.com/cgi-bin/shorturl"
 	weixinUserInfo           = "https://api.weixin.qq.com/cgi-bin/user/info"
-	weixinFileURL            = "http://file.api.weixin.qq.com/cgi-bin/media"
+	weixinFileURL            = "https://file.api.weixin.qq.com/cgi-bin/media"
 	weixinTemplate           = "https://api.weixin.qq.com/cgi-bin/template"
 	weixinRedirectURL        = "https://open.weixin.qq.com/connect/oauth2/authorize?appid=%s&redirect_uri=%s&response_type=code&scope=%s&state=%s#wechat_redirect"
 	weixinUserAccessTokenURL = "https://api.weixin.qq.com/sns/oauth2/access_token?appid=%s&secret=%s&code=%s&grant_type=authorization_code"
@@ -513,6 +513,22 @@ func (wx *Weixin) PostNews(touser string, articles []Article) error {
 	msg.MsgType = "news"
 	msg.News.Articles = articles
 	return postMessage(wx.tokenChan, &msg)
+}
+
+// PostTyping used to post voice message.
+func (wx *Weixin) PostTyping(touser string, isTyping bool) error {
+	var msg struct {
+		ToUser  string `json:"touser"`
+		Command string `json:"command"`
+	}
+	msg.ToUser = touser
+	if isTyping {
+		msg.Command = "Typing"
+	} else {
+		msg.Command = "CancelTyping"
+	}
+
+	return postMessageTyping(wx.tokenChan, &msg)
 }
 
 // UploadMediaFromFile used to upload media from local file.
@@ -1095,6 +1111,15 @@ func postMessage(c chan AccessToken, msg interface{}) error {
 		return err
 	}
 	_, err = postRequest(weixinHost+"/message/custom/send?access_token=", c, data)
+	return err
+}
+
+func postMessageTyping(c chan AccessToken, msg interface{}) error {
+	data, err := marshal(msg)
+	if err != nil {
+		return err
+	}
+	_, err = postRequest(weixinHost+"/message/custom/typing?access_token=", c, data)
 	return err
 }
 
